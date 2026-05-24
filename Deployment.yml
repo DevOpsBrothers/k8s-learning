@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: nginx-dpm
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: nginx-app
+      project: k8s
+      env: dev
+
+  template:
+    metadata:
+      labels:
+        app: nginx-app
+        project: k8s
+        env: dev
+
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:stable
+          ports:
+            - containerPort: 80
