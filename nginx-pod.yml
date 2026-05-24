@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 
-metadata: 
+metadata:
   name: nginx-pod
   labels:
     app: nginx
@@ -12,3 +12,10 @@ spec:
       image: nginx:stable
       ports:
         - containerPort: 80
+
+    - name: log-sidecar
+      image: busybox
+      command: ["sh", "-c", "while true; do echo hello; sleep 30; done"]
+
+
+      
