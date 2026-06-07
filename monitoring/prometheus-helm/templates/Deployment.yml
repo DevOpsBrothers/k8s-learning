@@ -1,0 +1,32 @@
+# File: prom-Deployment.yml # {{ .Values.app_name }} Deployment for Pods
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app_name }}-dep
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.app_name }}-app
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app_name }}-app
+    spec:
+      containers:
+        - name: prom-container
+          image: prom/{{ .Values.app_name }}:main
+          args:
+            - "--config.file=/etc/{{ .Values.app_name }}/{{ .Values.app_name }}.yml"
+            - "--web.external-url=/{{ .Values.app_name }}"
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/{{ .Values.app_name }}/
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ .Values.app_name }}-configmap

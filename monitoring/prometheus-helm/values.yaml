@@ -1,0 +1,3 @@
+app_name: prometheus
+namespace: monitoring
+hostIp: 13.203.216.175
