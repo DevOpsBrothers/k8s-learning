@@ -1,0 +1,112 @@
+# File : prom-namespace.yml # Putting Prometheus under a single namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring-ns
+---
+# File: prom-ConfigMap.yml # Prometheus ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-configmap
+  namespace: monitoring-ns
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval:     15s
+      evaluation_interval: 15s
+
+    rule_files:
+      # - "first.rules"
+      # - "second.rules"
+
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: ['0.0.0.0:9090']
+---
+# File: prom-Deployment.yml # Prometheus Deployment for Pods
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-dep
+  namespace: monitoring-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-app
+
+  template:
+    metadata:
+      labels:
+        app: prometheus-app
+    spec:
+      containers:
+        - name: prom-container
+          image: prom/prometheus:main
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--web.external-url=/prometheus"
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus/
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-configmap
+---
+# File: prom-svc.yml # Prometheus Service to expose the application
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-svc
+  namespace: monitoring-ns
+spec:
+  type: ClusterIP
+  selector:
+    app: prometheus-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9090
+---
+# File: prom-ingress.yml # Prometheus Ingress  to expose the application like http://ip-domain/prometheus
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ingress
+  namespace: monitoring-ns
+  # annotations:
+  #   traefik.ingress.kubernetes.io/router.middlewares: monitoring-ns-prom-stripprefix@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: 13.201.168.197.nip.io
+      http:
+        paths:
+          - path: /prometheus
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus-svc
+                port:
+                  number: 80
+
+---
+# File: prom-ingress-middlewere.yml #
+# Strip prefix /prometheus
+# apiVersion: traefik.io/v1alpha1
+# kind: Middleware
+# metadata:
+#   name: prom-stripprefix
+#   namespace: monitoring-ns
+# spec:
+#   stripPrefix:
+#     prefixes:
+#       - /prometheus
+# - /query
+# replacePath:
+#   path: "/"
